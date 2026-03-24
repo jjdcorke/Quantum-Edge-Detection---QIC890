@@ -21,18 +21,9 @@ def normalize_image(image):
     norm_image = image.flatten()/np.linalg.norm(image.flatten())
     return norm_image.reshape(shape)
 
+
 class QHED:
-    def __init__(
-        self,
-        image,
-        measure=False,
-        display=False,
-        shots=1024,
-        use_noise=False,
-        single_qubit_error=0.001,
-        two_qubit_error=0.01,
-        readout_error=0.02,
-    ):
+    def __init__(self, image, measure=False, display=False, shots=1024):
         self.image = image
         self.norm_image = normalize_image(image)
         self.norm_image_T = self.norm_image.T
@@ -40,10 +31,6 @@ class QHED:
         self.measure = measure
         self.display = display
         self.shots = shots
-        self.use_noise = use_noise
-        self.single_qubit_error = single_qubit_error
-        self.two_qubit_error = two_qubit_error
-        self.readout_error = readout_error
 
         self.rows, self.cols = self.image.shape
         self.original_size = self.rows * self.cols
@@ -62,20 +49,10 @@ class QHED:
         self.hscan = self._pad_statevector(hscan_raw, self.data_dim)
         self.vscan = self._pad_statevector(vscan_raw, self.data_dim)
 
-        # Simulator must exist before get_results().
-        # Noise model is supported for shot-based simulation (measure=True).
-        if self.use_noise and not self.measure:
-            raise ValueError("use_noise=True requires measure=True")
-
+        # simulator must exist before get_results()
         if self.measure:
-            if self.use_noise:
-                self.noise_model = self._build_noise_model()
-                self.simulator = AerSimulator(noise_model=self.noise_model)
-            else:
-                self.noise_model = None
-                self.simulator = AerSimulator()
+            self.simulator = AerSimulator()
         else:
-            self.noise_model = None
             self.simulator = StatevectorSimulator()
 
         self.circs = [self.horizontal_scan(), self.vertical_scan()]
@@ -88,24 +65,6 @@ class QHED:
         padded = np.zeros(target_len, dtype=vector.dtype)
         padded[: len(vector)] = vector
         return padded
-
-    def _build_noise_model(self):
-        from qiskit_aer.noise import NoiseModel, ReadoutError, depolarizing_error
-
-        noise_model = NoiseModel()
-
-        # Gate noise
-        err_1q = depolarizing_error(self.single_qubit_error, 1)
-        err_2q = depolarizing_error(self.two_qubit_error, 2)
-        noise_model.add_all_qubit_quantum_error(err_1q, ["u", "sx", "x", "h", "rz"])
-        noise_model.add_all_qubit_quantum_error(err_2q, ["cx"])
-
-        # Readout noise
-        p = self.readout_error
-        ro_error = ReadoutError([[1 - p, p], [p, 1 - p]])
-        noise_model.add_all_qubit_readout_error(ro_error)
-
-        return noise_model
 
     def vertical_scan(self):
         qc = QuantumCircuit(self.n_qubits)
