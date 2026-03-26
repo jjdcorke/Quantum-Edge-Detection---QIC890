@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from IPython.display import display
 
 # import Qiskit libraries
 from qiskit import QuantumCircuit, transpile
@@ -12,24 +13,32 @@ def plot_image(Image, title):
     plt.title(title)
     plt.xticks(range(Image.shape[0]))
     plt.yticks(range(Image.shape[1]))
-    plt.imshow(Image, extent=[  0,Image.shape[0], Image.shape[1],0,], cmap='hot', vmin=0, vmax=1)
+    plt.imshow(Image, extent=[  0,Image.shape[0], Image.shape[1],0,], cmap='grey')
     plt.colorbar()
     plt.show()
 
 def normalize_image(image):
-    shape = image.shape
-    norm_image = image.flatten()/np.linalg.norm(image.flatten())
+    image64 = np.asarray(image, dtype=np.float64)
+    shape = image64.shape
+    flat = image64.flatten()
+    norm = np.linalg.norm(flat)
+    if norm == 0:
+        raise ValueError("Input image has zero norm; cannot encode amplitudes.")
+    norm_image = flat / norm
     return norm_image.reshape(shape)
 
 
 class QHED:
-    def __init__(self, image, measure=False, display=False, shots=1024):
+    
+
+    def __init__(self, image, measure=False, display=False, plot_edges=False, shots=1024, edge_threshold=1e-5):
         self.image = image
         self.norm_image = normalize_image(image)
         self.norm_image_T = self.norm_image.T
-
+        self.EDGE_THRESHOLD = edge_threshold
         self.measure = measure
         self.display = display
+        self.plot_edges = plot_edges
         self.shots = shots
 
         self.rows, self.cols = self.image.shape
@@ -60,31 +69,34 @@ class QHED:
 
     @staticmethod
     def _pad_statevector(vector, target_len):
-        if len(vector) == target_len:
-            return vector
-        padded = np.zeros(target_len, dtype=vector.dtype)
-        padded[: len(vector)] = vector
+        vector64 = np.asarray(vector, dtype=np.float64)
+        if len(vector64) == target_len:
+            return vector64
+        padded = np.zeros(target_len, dtype=np.float64)
+        padded[: len(vector64)] = vector64
         return padded
 
+    @staticmethod
+    def _prepare_amplitudes(vector):
+        """Return a strictly normalized float64 amplitude vector for state prep."""
+        amplitudes = np.asarray(vector, dtype=np.float64)
+        norm = np.linalg.norm(amplitudes)
+        if norm == 0:
+            raise ValueError("Amplitude vector has zero norm; cannot initialize circuit state.")
+        return amplitudes / norm
+
     def vertical_scan(self):
+        return self._build_scan_circuit(self.vscan)
+
+    def horizontal_scan(self):
+        return self._build_scan_circuit(self.hscan)
+
+    def _build_scan_circuit(self, scan_vector):
         qc = QuantumCircuit(self.n_qubits)
 
         # initialize only data qubits (exclude ancilla q0)
-        qc.initialize(self.vscan, range(1, self.n_qubits))
-        qc.h(0)
-        qc.unitary(self.shift_matrix, range(self.n_qubits), label="Shift")
-        qc.h(0)
-
-        if self.measure:
-            qc.measure_all()
-        if self.display:
-            display(qc.draw("mpl"))
-        return qc
-
-    def horizontal_scan(self):
-        qc = QuantumCircuit(self.n_qubits)
-
-        qc.initialize(self.hscan, range(1, self.n_qubits))
+        qc.initialize(self._prepare_amplitudes(scan_vector), range(1, self.n_qubits))
+        qc.barrier(label="init")
         qc.h(0)
         qc.unitary(self.shift_matrix, range(self.n_qubits), label="Shift")
         qc.h(0)
@@ -114,40 +126,60 @@ class QHED:
 
         return results
 
-    def _result_to_flat_edge(self, result):
-        threshold = lambda x: 1 if x > 1e-10 else 0
-        flat_edge = np.zeros(self.data_dim, dtype=int)
+    def _result_to_flat_probabilities(self, result):
+        flat_probs = np.zeros(self.data_dim, dtype=np.float64)
 
         if self.measure:
             for bitstring, prob in result.items():
                 index = int(bitstring, 2)
                 if index < self.data_dim:
-                    flat_edge[index] = threshold(prob)
+                    flat_probs[index] = prob
         else:
             probabilities = np.abs(result) ** 2
-            flat_edge[: len(probabilities)] = (probabilities > 1e-10).astype(int)
+            flat_probs[: len(probabilities)] = probabilities
 
         # Drop amplitudes that came only from zero-padding.
-        return flat_edge[: self.original_size]
+        return flat_probs[: self.original_size]
+
+    def _result_to_flat_edge(self, result):
+        flat_probs = self._result_to_flat_probabilities(result)
+        return (flat_probs > self.EDGE_THRESHOLD).astype(int)
+
+    def _flat_to_edge_image(self, flat_edge, idx):
+        if idx == 0:
+            # Horizontal: encoded from image.flatten()
+            return flat_edge.reshape(self.rows, self.cols)
+
+        # Vertical: encoded from image.T.flatten(); reshape in transposed frame then map back.
+        edge_image_t = flat_edge.reshape(self.cols, self.rows)
+        return edge_image_t.T
 
     def plot_results(self):
         edges = []
         for idx, result in enumerate(self.results):
             flat_edge = self._result_to_flat_edge(result)
-
-            if idx == 0:
-                # Horizontal: encoded from image.flatten()
-                edge_image = flat_edge.reshape(self.rows, self.cols)
-            else:
-                # Vertical: encoded from image.T.flatten(); reshape in transposed frame then map back.
-                edge_image_t = flat_edge.reshape(self.cols, self.rows)
-                edge_image = edge_image_t.T
+            edge_image = self._flat_to_edge_image(flat_edge, idx)
 
             edges.append(edge_image)
-
             title = "Horizontal Edges" if idx == 0 else "Vertical Edges"
-            plot_image(edge_image, title)
+            #plot individual edge images if desired
+            if self.plot_edges:
+                plot_image(edge_image, title)
 
         # combine horizontal and vertical edges
         combined_edges = np.logical_or(edges[0], edges[1]).astype(int)
         plot_image(combined_edges, "Combined Edges")
+
+    def plot_raw_results(self):
+        edges = []
+        for idx, result in enumerate(self.results):
+            flat_edge = self._result_to_flat_probabilities(result)
+            edge_image = self._flat_to_edge_image(flat_edge, idx)
+
+            edges.append(edge_image)
+            title = "Horizontal Edge Intensity (Raw)" if idx == 0 else "Vertical Edge Intensity (Raw)"
+            if self.plot_edges:
+                plot_image(edge_image, title)
+
+        combined_edges = np.maximum(edges[0], edges[1])
+        plot_image(combined_edges, "Combined Edge Intensity (Raw)")

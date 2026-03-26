@@ -23,8 +23,11 @@ defusedxml==0.7.1
 dill==0.4.0
 executing @ file:///home/conda/feedstock_root/build_artifacts/executing_1756729339227/work
 fastjsonschema==2.21.2
+filelock @ file:///Users/ec2-user/croot/filelock_1769440497954/work
 fonttools==4.61.1
 fqdn==1.5.1
+fsspec @ file:///Users/ec2-user/croot/fsspec_1773996598661/work
+gmpy2 @ file:///opt/miniconda3/conda-bld/gmpy2_1764747892558/work
 h11==0.16.0
 httpcore==1.0.9
 httpx==0.28.1
@@ -38,7 +41,7 @@ ipython_pygments_lexers @ file:///home/conda/feedstock_root/build_artifacts/ipyt
 ipywidgets==8.1.8
 isoduration==20.11.0
 jedi @ file:///home/conda/feedstock_root/build_artifacts/jedi_1733300866624/work
-Jinja2==3.1.6
+Jinja2 @ file:///Users/ec2-user/buildout/croot/jinja2_1761936793528/work
 joblib==1.5.3
 json5==0.13.0
 jsonpointer==3.0.0
@@ -60,15 +63,17 @@ MarkupSafe==3.0.3
 matplotlib==3.10.8
 matplotlib-inline @ file:///home/conda/feedstock_root/build_artifacts/matplotlib-inline_1761214490209/work
 mistune==3.2.0
-mpmath==1.3.0
+mpmath @ file:///Users/ec2-user/buildout/croot/mpmath_1761939747452/work
 narwhals==2.17.0
 nbclient==0.10.4
 nbconvert==7.16.6
 nbformat==5.10.4
 nest_asyncio @ file:///home/conda/feedstock_root/build_artifacts/nest-asyncio_1733325553580/work
+networkx @ file:///Users/ec2-user/buildout/croot/networkx_1768896190670/work
 notebook==7.5.3
 notebook_shim==0.2.4
 numpy==2.4.0
+optree @ file:///opt/miniconda3/conda-bld/optree_1765445027572/work
 packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1745345660/work
 pandas==2.3.3
 pandocfilters==1.5.1
@@ -119,13 +124,15 @@ six @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_six_17
 soupsieve==2.8.3
 stack_data @ file:///home/conda/feedstock_root/build_artifacts/stack_data_1733569443808/work
 stevedore==5.6.0
-sympy==1.14.0
+sympy @ file:///opt/miniconda3/conda-bld/sympy_1764762956226/work
 terminado==0.18.1
 tinycss2==1.4.0
+torch==2.11.0
+torchvision==0.26.0
 tornado @ file:///Users/runner/miniforge3/conda-bld/tornado_1765836485979/work
 traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1733367359838/work
 typing-inspection==0.4.2
-typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_typing_extensions_1756220668/work
+typing_extensions @ file:///Users/ec2-user/buildout/croot/typing_extensions_1759952168048/work
 tzdata==2025.3
 uri-template==1.3.0
 urllib3==2.6.2
