@@ -55,8 +55,8 @@ class QHED:
         # Build horizontal/vertical scan vectors and pad to required amplitude length.
         hscan_raw = self.norm_image.flatten()
         vscan_raw = self.norm_image_T.flatten()
-        self.hscan = self._pad_statevector(hscan_raw, self.data_dim)
-        self.vscan = self._pad_statevector(vscan_raw, self.data_dim)
+        self.hscan = self.pad_statevector(hscan_raw, self.data_dim)
+        self.vscan = self.pad_statevector(vscan_raw, self.data_dim)
 
         # simulator must exist before get_results()
         if self.measure:
@@ -68,7 +68,7 @@ class QHED:
         self.results = self.get_results()
 
     @staticmethod
-    def _pad_statevector(vector, target_len):
+    def pad_statevector(vector, target_len):
         vector64 = np.asarray(vector, dtype=np.float64)
         if len(vector64) == target_len:
             return vector64
@@ -77,7 +77,7 @@ class QHED:
         return padded
 
     @staticmethod
-    def _prepare_amplitudes(vector):
+    def prepare_amplitudes(vector):
         """Return a strictly normalized float64 amplitude vector for state prep."""
         amplitudes = np.asarray(vector, dtype=np.float64)
         norm = np.linalg.norm(amplitudes)
@@ -91,7 +91,7 @@ class QHED:
     def horizontal_scan(self):
         return self._build_scan_circuit(self.hscan)
 
-    def _build_scan_circuit(self, scan_vector):
+    def build_scan_circuit(self, scan_vector):
         qc = QuantumCircuit(self.n_qubits)
 
         # initialize only data qubits (exclude ancilla q0)
@@ -126,7 +126,7 @@ class QHED:
 
         return results
 
-    def _result_to_flat_probabilities(self, result):
+    def result_to_flat_probabilities(self, result):
         flat_probs = np.zeros(self.data_dim, dtype=np.float64)
 
         if self.measure:
@@ -141,11 +141,11 @@ class QHED:
         # Drop amplitudes that came only from zero-padding.
         return flat_probs[: self.original_size]
 
-    def _result_to_flat_edge(self, result):
+    def result_to_flat_edge(self, result):
         flat_probs = self._result_to_flat_probabilities(result)
         return (flat_probs > self.EDGE_THRESHOLD).astype(int)
 
-    def _flat_to_edge_image(self, flat_edge, idx):
+    def flat_to_edge_image(self, flat_edge, idx):
         if idx == 0:
             # Horizontal: encoded from image.flatten()
             return flat_edge.reshape(self.rows, self.cols)
