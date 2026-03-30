@@ -86,16 +86,16 @@ class QHED:
         return amplitudes / norm
 
     def vertical_scan(self):
-        return self._build_scan_circuit(self.vscan)
+        return self.build_scan_circuit(self.vscan)
 
     def horizontal_scan(self):
-        return self._build_scan_circuit(self.hscan)
+        return self.build_scan_circuit(self.hscan)
 
     def build_scan_circuit(self, scan_vector):
         qc = QuantumCircuit(self.n_qubits)
 
         # initialize only data qubits (exclude ancilla q0)
-        qc.initialize(self._prepare_amplitudes(scan_vector), range(1, self.n_qubits))
+        qc.initialize(self.prepare_amplitudes(scan_vector), range(1, self.n_qubits))
         qc.barrier(label="init")
         qc.h(0)
         qc.unitary(self.shift_matrix, range(self.n_qubits), label="Shift")
@@ -142,7 +142,7 @@ class QHED:
         return flat_probs[: self.original_size]
 
     def result_to_flat_edge(self, result):
-        flat_probs = self._result_to_flat_probabilities(result)
+        flat_probs = self.result_to_flat_probabilities(result)
         return (flat_probs > self.EDGE_THRESHOLD).astype(int)
 
     def flat_to_edge_image(self, flat_edge, idx):
@@ -157,8 +157,8 @@ class QHED:
     def plot_results(self):
         edges = []
         for idx, result in enumerate(self.results):
-            flat_edge = self._result_to_flat_edge(result)
-            edge_image = self._flat_to_edge_image(flat_edge, idx)
+            flat_edge = self.result_to_flat_edge(result)
+            edge_image = self.flat_to_edge_image(flat_edge, idx)
 
             edges.append(edge_image)
             title = "Horizontal Edges" if idx == 0 else "Vertical Edges"
@@ -173,8 +173,8 @@ class QHED:
     def plot_raw_results(self):
         edges = []
         for idx, result in enumerate(self.results):
-            flat_edge = self._result_to_flat_probabilities(result)
-            edge_image = self._flat_to_edge_image(flat_edge, idx)
+            flat_edge = self.result_to_flat_probabilities(result)
+            edge_image = self.flat_to_edge_image(flat_edge, idx)
 
             edges.append(edge_image)
             title = "Horizontal Edge Intensity (Raw)" if idx == 0 else "Vertical Edge Intensity (Raw)"
