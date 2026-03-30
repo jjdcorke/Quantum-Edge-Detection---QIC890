@@ -50,6 +50,8 @@ class QHED:
 
         # +1 ancilla qubit
         self.n_qubits = self.data_qubits + 1
+
+        # Shift matrix for cyclic permutation of all qubits (including ancilla) to implement the scan operation.
         self.shift_matrix = np.roll(np.identity(2**self.n_qubits), 1, axis=1)
 
         # Build horizontal/vertical scan vectors and pad to required amplitude length.
@@ -69,6 +71,7 @@ class QHED:
 
     @staticmethod
     def pad_statevector(vector, target_len):
+        """Pad a state vector with a constant number of zeros. For hscan and vscan"""
         vector64 = np.asarray(vector, dtype=np.float64)
         if len(vector64) == target_len:
             return vector64
